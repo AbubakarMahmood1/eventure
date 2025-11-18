@@ -11,14 +11,14 @@ const DB = process.env.DATABASE_URL.replace(
   "<PASSWORD>",
   process.env.DATABASE_PASSWORD
 );
-console.log(DB);
 mongoose
   .connect(DB)
-  .then((con) => {
-    console.log("Database connected");
+  .then(() => {
+    // Database connected successfully
   })
   .catch((err) => {
-    console.log(err);
+    console.error("Database connection failed:", err.message);
+    process.exit(1);
   });
 
 /////----------------routes
@@ -39,6 +39,5 @@ app.post("/api/create-payment-intent", eventControllers.createPaymentIntent);
 //booking routes
 app.post("/api/add-booking", bookingControllers.addBooking);
 app.get("/api/get-bookings", bookingControllers.getBookings);
-app.listen(3000, () => {
-  console.log("server is listening at port 3000");
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT);

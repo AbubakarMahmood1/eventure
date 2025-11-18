@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const eventSchema = new mongoose.Schema({
-  attandees: {
+  attendees: {
     type: Number,
     default: 0,
   },

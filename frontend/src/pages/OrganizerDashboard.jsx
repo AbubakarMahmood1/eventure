@@ -27,7 +27,6 @@ import EventTableSkeleton from "../Skeleton/EventTableSkeleton";
 import ErrorState from "../components/ErrorState";
 import EventsNotFoundState from "../components/EventsNotFoundState";
 const addEvent = async (eventData) => {
-  console.log(eventData);
   const response = await axios.post(
     `${import.meta.env.VITE_API_BASE_URL}/add-event`,
     eventData
@@ -35,7 +34,6 @@ const addEvent = async (eventData) => {
   return response.data;
 };
 const getEvents = async (email) => {
-  console.log(email);
   const response = await axios.get(
     `${import.meta.env.VITE_API_BASE_URL}/get-events`,
     {
@@ -47,7 +45,6 @@ const getEvents = async (email) => {
   return response.data;
 };
 const getBookings = async (email) => {
-  console.log(email);
   const response = await axios.get(
     `${import.meta.env.VITE_API_BASE_URL}/get-bookings`,
     {
@@ -59,20 +56,19 @@ const getBookings = async (email) => {
 
   return response.data.bookings;
 };
-const deleteEvent = async (id) => {
-  console.log(id);
+const deleteEvent = async (id, email) => {
   const response = await axios.delete(
     `${import.meta.env.VITE_API_BASE_URL}/delete-event`,
     {
       params: {
         id,
+        email,
       },
     }
   );
   return response.data;
 };
 const updateEvent = async (data) => {
-  console.log(data);
   const response = await axios.put(
     `${import.meta.env.VITE_API_BASE_URL}/update-event`,
     {
@@ -136,18 +132,10 @@ function OrganizerDashboard() {
     queryKey: ["allBookings"],
     enabled: !!user?.emailAddresses?.[0]?.emailAddress,
   });
-  if (!allBookingsLoading) {
-    console.log(allBookingsData);
-  }
   const updateEventMutation = useMutation({
     mutationFn: (data) => updateEvent(data),
     onSuccess: () => {
-      console.log("Event updated successfully");
-
       refetch();
-    },
-    onError: () => {
-      console.log("please try later");
     },
   });
   const mutation = useMutation({
@@ -156,11 +144,7 @@ function OrganizerDashboard() {
       return addEvent(data);
     },
     onSuccess: (data) => {
-      console.log(data);
       refetch();
-    },
-    onError: (err) => {
-      console.log(err);
     },
     onSettled: () => {
       setIsCreateModalOpen(false);
@@ -168,33 +152,27 @@ function OrganizerDashboard() {
     },
   });
   const handleDeleteMutation = useMutation({
-    mutationFn: (id) => {
-      return deleteEvent(id);
+    mutationFn: ({ id, email }) => {
+      return deleteEvent(id, email);
     },
     onSuccess: (data) => {
-      console.log(data);
       refetch();
-    },
-    onError: (err) => {
-      console.log(err);
     },
   });
   const handleDelete = (id) => {
-    handleDeleteMutation.mutate(id);
-
-    // setEvents(events.filter((event) => event.id !== id));
+    handleDeleteMutation.mutate({
+      id,
+      email: user.emailAddresses[0].emailAddress
+    });
   };
 
   const handleEdit = (event) => {
-    console.log(event);
     setCurrentEvent(event);
     setIsEditModalOpen(true);
   };
 
   const handleSaveEdit = () => {
     updateEventMutation.mutate(currentEvent);
-    console.log(currentEvent);
-    console.log("this run");
 
     // setEvents(events.map((e) => (e.id === currentEvent.id ? currentEvent : e)));
     setIsEditModalOpen(false);
@@ -224,17 +202,8 @@ function OrganizerDashboard() {
     // Check if there are any errors
     const hasErrors = Object.values(errors).some((error) => error);
 
-    // Log the form data for API integration
-
     // Only proceed if no errors
     if (!hasErrors) {
-      // Log successful submission data
-      console.log("Creating event with data:", {
-        ...newEvent,
-        id: Math.max(...events.map((e) => e.id)) + 1,
-        attendees: 0,
-      });
-
       mutation.mutate({
         ...newEvent,
         selectedCategory,
@@ -253,9 +222,6 @@ function OrganizerDashboard() {
       });
     }
   };
-  if (allBookingsError) {
-    console.log(allBookingsError);
-  }
   const viewBookingDetails = (booking) => {
     setSelectedBooking({ ...booking });
     setIsBookingDetailOpen(true);
@@ -361,7 +327,7 @@ function OrganizerDashboard() {
                           <td className="px-4 py-3 text-sm">${event.price}</td>
                           <td className="px-4 py-3 text-sm">
                             <Badge variant="flat" color="success">
-                              {event.attandees} registered
+                              {event.attendees} registered
                             </Badge>
                           </td>
                           <td className="px-4 py-3 text-sm">

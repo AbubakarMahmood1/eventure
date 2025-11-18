@@ -3,81 +3,125 @@ const Booking = require("../modals/booking-schema");
 const Stripe = require("stripe");
 exports.addEvent = async (req, res) => {
   try {
-    console.log(req.body);
     const newEvent = await Event.create(req.body);
     if (newEvent) {
-      return res.status(200).json({
+      return res.status(201).json({
         data: newEvent,
       });
     }
   } catch (err) {
-    console.log(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to create event",
+      error: err.message,
     });
   }
 };
 exports.getEvents = async (req, res) => {
   try {
-    console.log(req.query.email);
     const events = await Event.find({ email: req.query.email });
     return res.status(200).json({
       data: events,
     });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to fetch events",
+      error: err.message,
     });
   }
 };
 exports.deleteEvent = async (req, res) => {
   try {
-    const event = await Event.findByIdAndDelete(req.query.id);
+    const { id, email } = req.query;
+
+    if (!email) {
+      return res.status(401).json({
+        message: "Unauthorized: Email required",
+      });
+    }
+
+    const event = await Event.findById(id);
     if (!event) {
       return res.status(404).json({
         message: "Event not found",
       });
     }
+
+    // Authorization check: verify the user owns this event
+    if (event.email !== email) {
+      return res.status(403).json({
+        message: "Forbidden: You can only delete your own events",
+      });
+    }
+
+    await Event.findByIdAndDelete(id);
     // Delete all bookings associated with this event
-    await Booking.deleteMany({ eventId: req.query.id });
-    return res.status(200);
+    await Booking.deleteMany({ eventId: id });
+
+    return res.status(200).json({
+      message: "Event deleted successfully",
+    });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to delete event",
+      error: err.message,
     });
   }
 };
 exports.updateEvent = async (req, res) => {
   try {
-    console.log(req.body.params.data);
+    const { _id, email, ...updateData } = req.body.params.data;
+
+    if (!email) {
+      return res.status(401).json({
+        message: "Unauthorized: Email required",
+      });
+    }
+
+    const existingEvent = await Event.findById(_id);
+    if (!existingEvent) {
+      return res.status(404).json({
+        message: "Event not found",
+      });
+    }
+
+    // Authorization check: verify the user owns this event
+    if (existingEvent.email !== email) {
+      return res.status(403).json({
+        message: "Forbidden: You can only update your own events",
+      });
+    }
+
     const event = await Event.findByIdAndUpdate(
-      req.body.params.data._id,
-      req.body.params.data,
-      { new: true }
+      _id,
+      { ...updateData, email: existingEvent.email }, // Preserve original email
+      { new: true, runValidators: true }
     );
+
     return res.status(200).json({
       event,
     });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to update event",
+      error: err.message,
     });
   }
 };
 exports.getSingleEvent = async (req, res) => {
   try {
-    console.log(req.query.id);
     const event = await Event.findById(req.query.id);
+    if (!event) {
+      return res.status(404).json({
+        message: "Event not found",
+      });
+    }
     return res.status(200).json({
       event,
     });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to fetch event",
+      error: err.message,
     });
   }
 };
@@ -90,9 +134,9 @@ exports.getFeaturedEvents = async (req, res) => {
       events,
     });
   } catch (err) {
-    console.log(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to fetch featured events",
+      error: err.message,
     });
   }
 };
@@ -106,45 +150,50 @@ exports.getUpcomingEvents = async (req, res) => {
     })
       .sort({ date: 1 }) // earliest dates first
       .limit(6);
-    console.log(events);
     return res.status(200).json({
       events,
     });
   } catch (err) {
-    console.error(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to fetch upcoming events",
+      error: err.message,
     });
   }
 };
 exports.getAllEvents = async (req, res) => {
   try {
     const events = await Event.find();
-    console.log(events);
     return res.status(200).json({
       events,
     });
   } catch (err) {
-    console.error(err);
     return res.status(500).json({
-      message: "Internal server error",
+      message: "Failed to fetch all events",
+      error: err.message,
     });
   }
 };
 
-const stripe = Stripe(process.env.STRIPE_KEY); // Put your actual secret key here
+const stripe = Stripe(process.env.STRIPE_KEY);
 exports.createPaymentIntent = async (req, res) => {
   try {
     const { amount } = req.body;
-    console.log(amount);
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        message: "Invalid amount",
+      });
+    }
     const paymentIntent = await stripe.paymentIntents.create({
       amount, // in cents e.g., $10 = 1000
       currency: "usd",
       automatic_payment_methods: { enabled: true },
     });
 
-    res.send({ clientSecret: paymentIntent.client_secret });
+    res.status(200).json({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(400).json({
+      message: "Failed to create payment intent",
+      error: error.message,
+    });
   }
 };
