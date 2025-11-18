@@ -3,7 +3,14 @@ const Booking = require("../modals/booking-schema");
 const Stripe = require("stripe");
 exports.addEvent = async (req, res) => {
   try {
-    const newEvent = await Event.create(req.body);
+    // Convert price from string to number and date from string to Date
+    const eventData = {
+      ...req.body,
+      price: parseFloat(req.body.price),
+      date: new Date(req.body.date),
+    };
+
+    const newEvent = await Event.create(eventData);
     if (newEvent) {
       return res.status(201).json({
         data: newEvent,
@@ -91,6 +98,14 @@ exports.updateEvent = async (req, res) => {
       });
     }
 
+    // Convert types if needed
+    if (updateData.price) {
+      updateData.price = parseFloat(updateData.price);
+    }
+    if (updateData.date) {
+      updateData.date = new Date(updateData.date);
+    }
+
     const event = await Event.findByIdAndUpdate(
       _id,
       { ...updateData, email: existingEvent.email }, // Preserve original email
@@ -162,9 +177,41 @@ exports.getUpcomingEvents = async (req, res) => {
 };
 exports.getAllEvents = async (req, res) => {
   try {
-    const events = await Event.find();
+    // Pagination parameters
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Optional filters
+    const filter = {};
+    if (req.query.category) {
+      filter['selectedCategory.value'] = req.query.category;
+    }
+    if (req.query.search) {
+      filter.$or = [
+        { title: { $regex: req.query.search, $options: 'i' } },
+        { description: { $regex: req.query.search, $options: 'i' } },
+        { location: { $regex: req.query.search, $options: 'i' } },
+      ];
+    }
+
+    const [events, total] = await Promise.all([
+      Event.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      Event.countDocuments(filter),
+    ]);
+
     return res.status(200).json({
       events,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasMore: skip + events.length < total,
+      },
     });
   } catch (err) {
     return res.status(500).json({
