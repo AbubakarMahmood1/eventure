@@ -69,6 +69,10 @@ app.post("/api/create-payment-intent", eventControllers.createPaymentIntent);
 //booking routes
 app.post("/api/add-booking", bookingControllers.addBooking);
 app.get("/api/get-bookings", bookingControllers.getBookings);
+app.post("/api/cancel-booking/:bookingId", bookingControllers.cancelBooking);
+app.get("/api/download-ticket/:bookingId", bookingControllers.downloadTicket);
+app.post("/api/verify-ticket", bookingControllers.verifyTicket);
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   logger.info(`Server started on port ${PORT}`);

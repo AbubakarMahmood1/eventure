@@ -1,6 +1,28 @@
 const Event = require("../modals/event-schema");
 const Booking = require("../modals/booking-schema");
 const Stripe = require("stripe");
+
+/**
+ * @typedef {Object} EventData
+ * @property {string} title - Event title
+ * @property {string} date - Event date (ISO string)
+ * @property {string} location - Event location
+ * @property {number} price - Ticket price
+ * @property {string} description - Event description
+ * @property {string} email - Organizer email
+ * @property {Object} selectedCategory - Event category
+ * @property {string} selectedCategory.label - Category label
+ * @property {string} selectedCategory.value - Category value
+ * @property {number} [capacity] - Maximum attendees (optional)
+ * @property {string} [image] - Event image URL (optional)
+ */
+
+/**
+ * Create a new event
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
+ */
 exports.addEvent = async (req, res) => {
   try {
     // Convert price from string to number and date from string to Date
@@ -23,6 +45,13 @@ exports.addEvent = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get events for a specific organizer
+ * @param {import('express').Request} req - Express request object
+ * @param {import('express').Response} res - Express response object
+ * @returns {Promise<void>}
+ */
 exports.getEvents = async (req, res) => {
   try {
     const events = await Event.find({ email: req.query.email });
