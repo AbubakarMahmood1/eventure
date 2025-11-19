@@ -143,7 +143,6 @@ function HomePage() {
     setModalTitle("Search Results");
     let filtered = alleventsData || [];
     if (selectedCategories.length > 0) {
-      console.log(selectedDate);
       filtered = filtered.filter((event) => {
         return selectedCategories.includes(event.selectedCategory.value);
       });
@@ -355,7 +354,7 @@ function HomePage() {
                 <ErrorState type="Events" />
               ) : featuredEventsData && featuredEventsData.length > 0 ? (
                 featuredEventsData.map((event) => (
-                  <SwiperSlide key={event.id}>
+                  <SwiperSlide key={event._id}>
                     <div className="pb-10">
                       <EventCard event={event} />
                     </div>

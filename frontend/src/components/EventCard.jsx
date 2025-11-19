@@ -158,7 +158,7 @@ function EventCard({ event }) {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Attendees</p>
-                    <p className="font-medium">{event.attandees}</p>
+                    <p className="font-medium">{event.attendees}</p>
                   </div>
                 </div>
               </div>

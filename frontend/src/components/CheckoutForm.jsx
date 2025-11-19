@@ -49,7 +49,6 @@ const CheckoutForm = ({ totalPrice, onSuccess }) => {
 
     setIsProcessing(false);
   };
-  console.log(totalPrice);
   return (
     <div className="max-w-md mx-auto mt-10 p-6 border border-gray-200 shadow-lg rounded-xl bg-white">
       <h2 className="text-2xl font-bold mb-6 text-center">Secure Payment</h2>

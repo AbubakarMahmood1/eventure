@@ -34,19 +34,15 @@ const IMAGES = {
     "https://plus.unsplash.com/premium_photo-1684820878202-52781d8e0ea9?q=80&w=3871&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
 };
 const addBooking = async (bookingData) => {
-  console.log("booking data", bookingData);
   const response = await axios.post(
     `${import.meta.env.VITE_API_BASE_URL}/add-booking`,
     {
       ...bookingData,
     }
   );
-  console.log("Booking API Response:", response.data);
   return response.data;
 };
 const getEvent = async (id) => {
-  console.log("getEvent called with ID:", id);
-
   if (!id) {
     throw new Error("Event ID is required");
   }
@@ -58,10 +54,8 @@ const getEvent = async (id) => {
         params: { id },
       }
     );
-    console.log("API Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching event:", error);
     throw error;
   }
 };
@@ -69,12 +63,10 @@ const getEvent = async (id) => {
 function BookingPage() {
   const { user } = useUser();
   const stripePromise = loadStripe(
-    "pk_test_51RCuzmCl0vn8AzTFhopPduTWVQlYArGSJl9TU0yEMRrCltDmOukj0oj4tObkzOw4PMfjgbEK6LU7yhlDEyUX5dnx00GXqqwZN5"
-  ); // Use your publishable key
+    import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  );
   const addEventMutation = useMutation({
     mutationFn: (bookingData) => addBooking(bookingData),
-    onSuccess: (data) => console.log("Booking successful:", data),
-    onError: (error) => console.error("Booking error:", error),
   });
   const { eventId } = useParams();
   const navigate = useNavigate();
@@ -100,17 +92,6 @@ function BookingPage() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Debug logging
-  console.log("Component render - eventId:", eventId);
-  console.log(
-    "Query state - isLoading:",
-    isLoading,
-    "data:",
-    data,
-    "error:",
-    error
-  );
-
   // Handle loading state
   if (isLoading) {
     return <BookingPageSkeleton />;
@@ -118,7 +99,6 @@ function BookingPage() {
 
   // Handle error state
   if (isError) {
-    console.error("Query error:", error);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -203,10 +183,9 @@ function BookingPage() {
         email: user.emailAddresses[0].emailAddress,
         quantity: ticketCount,
         totalPrice,
-        eventId: event.id,
+        eventId: event._id,
         eventTitle: event.title,
       };
-      console.log("Booking Details for API:", bookingDetails);
       setIsCheckoutForm(true);
       // setIsThankYouModalOpen(true);
     }
@@ -217,7 +196,6 @@ function BookingPage() {
     navigate("/");
   };
   const handlePaymebntSuccess = () => {
-    console.log("Payment successful");
     const bookingDetails = {
       name,
       email: user.emailAddresses[0].emailAddress,
@@ -226,7 +204,6 @@ function BookingPage() {
       eventId,
       eventTitle: event.title,
     };
-    console.log("Booking Details for API:", bookingDetails);
     addEventMutation.mutate(bookingDetails);
     setIsCheckoutForm(false);
     setIsThankYouModalOpen(true);
